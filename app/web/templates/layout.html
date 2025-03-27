@@ -26,12 +26,20 @@
             z-index: 100;
             padding: 48px 0 0;
             box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            width: 220px;
+            transition: all 0.3s ease-in-out;
+            left: 0;
+        }
+        
+        .sidebar-hidden {
+            left: -220px;
         }
         
         .sidebar .nav-link {
             color: #333;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1.25rem;
             border-radius: 0;
+            margin-bottom: 0.25rem;
         }
         
         .sidebar .nav-link.active {
@@ -45,13 +53,21 @@
         }
         
         .sidebar .nav-link i {
-            margin-right: 10px;
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
         }
         
         .main-content {
             margin-left: 220px;
-            padding: 2rem;
+            padding: 2rem 1rem;
             flex: 1;
+            overflow-x: hidden;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        
+        .main-content-expanded {
+            margin-left: 0;
         }
         
         .card {
@@ -105,6 +121,9 @@
     <!-- Top Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div class="container-fluid">
+            <button id="sidebarToggle" class="btn btn-dark me-2">
+                <i class="fas fa-bars"></i>
+            </button>
             <a class="navbar-brand" href="{{ url_for('web.index') }}">
                 <i class="fas fa-shield-alt me-2"></i>MS Graph Security Monitor
             </a>
@@ -189,6 +208,34 @@
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Sidebar Toggle Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Check if sidebar state is saved in localStorage
+            const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
+            
+            // Apply saved state on page load
+            if (sidebarHidden) {
+                sidebar.classList.add('sidebar-hidden');
+                mainContent.classList.add('main-content-expanded');
+            }
+            
+            // Toggle sidebar on button click
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('sidebar-hidden');
+                mainContent.classList.toggle('main-content-expanded');
+                
+                // Save state to localStorage
+                const isHidden = sidebar.classList.contains('sidebar-hidden');
+                localStorage.setItem('sidebarHidden', isHidden);
+            });
+        });
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

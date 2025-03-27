@@ -10,9 +10,6 @@ requests==2.31.0
 msal==1.24.1
 geopy==2.4.1
 
-# Email sending
-# Using standard library's smtplib instead of sendgrid
-
 # Scheduling
 apscheduler==3.10.4
 
