@@ -1,0 +1,225 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Microsoft 365 Security Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
+</div>
+
+<!-- Alert Statistics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">High Severity Alerts</h5>
+                        <h1 class="display-4">{{ high_alerts }}</h1>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-circle fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <span>Last 7 days</span>
+                <a href="{{ url_for('web.alerts', severity='high') }}" class="text-white">View Details <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Medium Severity Alerts</h5>
+                        <h1 class="display-4">{{ medium_alerts }}</h1>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <span>Last 7 days</span>
+                <a href="{{ url_for('web.alerts', severity='medium') }}" class="text-white">View Details <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Low Severity Alerts</h5>
+                        <h1 class="display-4">{{ low_alerts }}</h1>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-info-circle fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <span>Last 7 days</span>
+                <a href="{{ url_for('web.alerts', severity='low') }}" class="text-white">View Details <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Statistics and Alert Types -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Alert Types</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="alertTypesChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-database me-2"></i>Log Collection</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="text-center mb-4">
+                            <h5>Sign-in Logs</h5>
+                            <h2 class="display-5">{{ signin_count }}</h2>
+                            <p class="text-muted">Last 7 days</p>
+                            <a href="{{ url_for('web.signin_logs') }}" class="btn btn-outline-primary btn-sm">View Logs</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-center mb-4">
+                            <h5>Audit Logs</h5>
+                            <h2 class="display-5">{{ audit_count }}</h2>
+                            <p class="text-muted">Last 7 days</p>
+                            <a href="{{ url_for('web.audit_logs') }}" class="btn btn-outline-primary btn-sm">View Logs</a>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-grid">
+                    <form action="{{ url_for('web.run_detection') }}" method="post">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync me-2"></i>Run Detection
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Alerts -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-bell me-2"></i>Recent Alerts</h5>
+    </div>
+    <div class="card-body">
+        {% if alerts %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Title</th>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alert in alerts[:10] %}
+                            <tr class="alert-{{ alert.severity }}">
+                                <td>
+                                    {% if alert.severity == 'high' %}
+                                        <span class="badge bg-danger">High</span>
+                                    {% elif alert.severity == 'medium' %}
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">Low</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ alert.title }}</td>
+                                <td>{{ alert.user_display_name }}</td>
+                                <td>{{ alert.alert_type }}</td>
+                                <td>{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('web.alert_detail', alert_id=alert.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if alerts|length > 10 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('web.alerts') }}" class="btn btn-outline-primary">View All Alerts</a>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                No recent alerts found.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Prepare data for the Alert Types chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var alertTypes = {{ alert_types|tojson }};
+        var labels = [];
+        var data = [];
+        var backgroundColors = [
+            '#dc3545', '#fd7e14', '#ffc107', '#20c997', '#0d6efd', 
+            '#6610f2', '#d63384', '#198754', '#0dcaf0', '#6c757d'
+        ];
+        
+        var i = 0;
+        for (var type in alertTypes) {
+            labels.push(type);
+            data.push(alertTypes[type]);
+            i++;
+        }
+        
+        // Create the chart
+        var ctx = document.getElementById('alertTypesChart').getContext('2d');
+        var alertTypesChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColors.slice(0, labels.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

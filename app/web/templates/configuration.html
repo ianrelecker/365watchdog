@@ -1,0 +1,245 @@
+{% extends "layout.html" %}
+
+{% block title %}Configuration - Microsoft 365 Security Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-cog me-2"></i>Configuration</h1>
+</div>
+
+<!-- Configuration Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-sliders-h me-2"></i>Detection Settings</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{{ url_for('web.configuration') }}">
+            {{ form.hidden_tag() }}
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h6 class="text-primary">Failed Login Detection</h6>
+                    <hr>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="failed_login_threshold" class="form-label">{{ form.failed_login_threshold.label.text }}</label>
+                    {{ form.failed_login_threshold(class="form-control") }}
+                    <div class="form-text">{{ form.failed_login_threshold.description }}</div>
+                    {% if form.failed_login_threshold.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.failed_login_threshold.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="failed_login_window" class="form-label">{{ form.failed_login_window.label.text }}</label>
+                    {{ form.failed_login_window(class="form-control") }}
+                    <div class="form-text">{{ form.failed_login_window.description }}</div>
+                    {% if form.failed_login_window.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.failed_login_window.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h6 class="text-primary">Unusual Location Detection</h6>
+                    <hr>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.unusual_countries_enabled(class="form-check-input") }}
+                        <label class="form-check-label" for="unusual_countries_enabled">{{ form.unusual_countries_enabled.label.text }}</label>
+                    </div>
+                    <div class="form-text">{{ form.unusual_countries_enabled.description }}</div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="high_risk_countries" class="form-label">{{ form.high_risk_countries.label.text }}</label>
+                    {{ form.high_risk_countries(class="form-control", rows=4) }}
+                    <div class="form-text">{{ form.high_risk_countries.description }}</div>
+                    {% if form.high_risk_countries.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.high_risk_countries.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h6 class="text-primary">After-Hours Detection</h6>
+                    <hr>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.after_hours_alerts_enabled(class="form-check-input") }}
+                        <label class="form-check-label" for="after_hours_alerts_enabled">{{ form.after_hours_alerts_enabled.label.text }}</label>
+                    </div>
+                    <div class="form-text">{{ form.after_hours_alerts_enabled.description }}</div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="work_hours_start" class="form-label">{{ form.work_hours_start.label.text }}</label>
+                    {{ form.work_hours_start(class="form-control") }}
+                    <div class="form-text">{{ form.work_hours_start.description }}</div>
+                    {% if form.work_hours_start.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.work_hours_start.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="work_hours_end" class="form-label">{{ form.work_hours_end.label.text }}</label>
+                    {{ form.work_hours_end(class="form-control") }}
+                    <div class="form-text">{{ form.work_hours_end.description }}</div>
+                    {% if form.work_hours_end.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.work_hours_end.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.weekend_alerts_enabled(class="form-check-input") }}
+                        <label class="form-check-label" for="weekend_alerts_enabled">{{ form.weekend_alerts_enabled.label.text }}</label>
+                    </div>
+                    <div class="form-text">{{ form.weekend_alerts_enabled.description }}</div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h6 class="text-primary">Additional Detection Settings</h6>
+                    <hr>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.admin_account_alerts_enabled(class="form-check-input") }}
+                        <label class="form-check-label" for="admin_account_alerts_enabled">{{ form.admin_account_alerts_enabled.label.text }}</label>
+                    </div>
+                    <div class="form-text">{{ form.admin_account_alerts_enabled.description }}</div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.impossible_travel_alerts_enabled(class="form-check-input") }}
+                        <label class="form-check-label" for="impossible_travel_alerts_enabled">{{ form.impossible_travel_alerts_enabled.label.text }}</label>
+                    </div>
+                    <div class="form-text">{{ form.impossible_travel_alerts_enabled.description }}</div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.new_device_alerts_enabled(class="form-check-input") }}
+                        <label class="form-check-label" for="new_device_alerts_enabled">{{ form.new_device_alerts_enabled.label.text }}</label>
+                    </div>
+                    <div class="form-text">{{ form.new_device_alerts_enabled.description }}</div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="impossible_travel_speed_kmh" class="form-label">{{ form.impossible_travel_speed_kmh.label.text }}</label>
+                    {{ form.impossible_travel_speed_kmh(class="form-control") }}
+                    <div class="form-text">{{ form.impossible_travel_speed_kmh.description }}</div>
+                    {% if form.impossible_travel_speed_kmh.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.impossible_travel_speed_kmh.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="alert_frequency_minutes" class="form-label">{{ form.alert_frequency_minutes.label.text }}</label>
+                    {{ form.alert_frequency_minutes(class="form-control") }}
+                    <div class="form-text">{{ form.alert_frequency_minutes.description }}</div>
+                    {% if form.alert_frequency_minutes.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.alert_frequency_minutes.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h6 class="text-primary">Email Settings</h6>
+                    <hr>
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="email_to" class="form-label">{{ form.email_to.label.text }}</label>
+                    {{ form.email_to(class="form-control") }}
+                    <div class="form-text">{{ form.email_to.description }}</div>
+                    {% if form.email_to.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.email_to.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="d-grid">
+                {{ form.submit(class="btn btn-primary btn-lg") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Email Test -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-envelope me-2"></i>Test Email Notifications</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">Send a test email to verify your email notification configuration.</p>
+        
+        <form method="post" action="{{ url_for('web.test_email') }}">
+            {{ email_test_form.hidden_tag() }}
+            
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label for="email" class="form-label">{{ email_test_form.email.label.text }}</label>
+                    {{ email_test_form.email(class="form-control") }}
+                    <div class="form-text">{{ email_test_form.email.description }}</div>
+                    {% if email_test_form.email.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in email_test_form.email.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    {{ email_test_form.submit(class="btn btn-secondary w-100") }}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends "layout.html" %}
+
+{% block title %}Audit Logs - Microsoft 365 Security Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-clipboard-list me-2"></i>Audit Logs</h1>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-filter me-2"></i>Filter Audit Logs</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{{ url_for('web.audit_logs') }}">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="activity" class="form-label">Activity</label>
+                    <input type="text" class="form-control" id="activity" name="activity" placeholder="Search by activity name" value="{{ activity }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="actor" class="form-label">Actor</label>
+                    <input type="text" class="form-control" id="actor" name="actor" placeholder="Search by actor name" value="{{ actor }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="days" class="form-label">Time Period</label>
+                    <select class="form-select" id="days" name="days">
+                        <option value="1" {% if days == 1 %}selected{% endif %}>Last 24 Hours</option>
+                        <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Apply Filters
+                </button>
+                <a href="{{ url_for('web.audit_logs') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Log Table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5><i class="fas fa-list me-2"></i>Audit Log List</h5>
+            <span class="badge bg-secondary">Total: {{ total }}</span>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if logs %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Activity</th>
+                            <th>Actor</th>
+                            <th>Category</th>
+                            <th>Result</th>
+                            <th>Time</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                            <tr>
+                                <td>{{ log.activity_display_name }}</td>
+                                <td>{{ log.actor_display_name }}</td>
+                                <td>{{ log.category }}</td>
+                                <td>
+                                    {% if log.result == 'success' %}
+                                        <span class="badge bg-success">Success</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Failure</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#logModal{{ log.id }}">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    
+                                    <!-- Log Detail Modal -->
+                                    <div class="modal fade" id="logModal{{ log.id }}" tabindex="-1" aria-labelledby="logModalLabel{{ log.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="logModalLabel{{ log.id }}">Audit Log Details</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <p><strong>Activity:</strong> {{ log.activity_display_name }}</p>
+                                                            <p><strong>Actor:</strong> {{ log.actor_display_name }}</p>
+                                                            <p><strong>Actor ID:</strong> {{ log.actor_id }}</p>
+                                                            <p><strong>Category:</strong> {{ log.category }}</p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <p><strong>Result:</strong> 
+                                                                {% if log.result == 'success' %}
+                                                                    <span class="badge bg-success">Success</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-danger">Failure</span>
+                                                                {% endif %}
+                                                            </p>
+                                                            <p><strong>Result Reason:</strong> {{ log.result_reason }}</p>
+                                                            <p><strong>Activity Type:</strong> {{ log.activity_type }}</p>
+                                                            <p><strong>Time:</strong> {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if log.timestamp else 'Unknown' }}</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {% if log.target_resources %}
+                                                        {% set resources = log.target_resources|from_json %}
+                                                        {% if resources %}
+                                                            <hr>
+                                                            <h6>Target Resources</h6>
+                                                            <div class="table-responsive">
+                                                                <table class="table table-sm">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Type</th>
+                                                                            <th>Name</th>
+                                                                            <th>ID</th>
+                                                                            <th>Modified Properties</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for resource in resources %}
+                                                                            <tr>
+                                                                                <td>{{ resource.get('type', 'Unknown') }}</td>
+                                                                                <td>{{ resource.get('displayName', 'Unknown') }}</td>
+                                                                                <td>{{ resource.get('id', 'Unknown') }}</td>
+                                                                                <td>
+                                                                                    {% if resource.get('modifiedProperties') %}
+                                                                                        <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#properties{{ loop.index }}{{ log.id }}">
+                                                                                            Show Properties
+                                                                                        </button>
+                                                                                        <div class="collapse mt-2" id="properties{{ loop.index }}{{ log.id }}">
+                                                                                            <div class="card card-body">
+                                                                                                <table class="table table-sm">
+                                                                                                    <thead>
+                                                                                                        <tr>
+                                                                                                            <th>Property</th>
+                                                                                                            <th>Old Value</th>
+                                                                                                            <th>New Value</th>
+                                                                                                        </tr>
+                                                                                                    </thead>
+                                                                                                    <tbody>
+                                                                                                        {% for prop in resource.get('modifiedProperties', []) %}
+                                                                                                            <tr>
+                                                                                                                <td>{{ prop.get('displayName', 'Unknown') }}</td>
+                                                                                                                <td>{{ prop.get('oldValue', '') }}</td>
+                                                                                                                <td>{{ prop.get('newValue', '') }}</td>
+                                                                                                            </tr>
+                                                                                                        {% endfor %}
+                                                                                                    </tbody>
+                                                                                                </table>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    {% else %}
+                                                                                        No modified properties
+                                                                                    {% endif %}
+                                                                                </td>
+                                                                            </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    
+                                                    <hr>
+                                                    <h6>Raw Data</h6>
+                                                    <div class="collapse" id="rawData{{ log.id }}">
+                                                        <pre class="p-3 bg-light"><code>{{ log.raw_data }}</code></pre>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#rawData{{ log.id }}">
+                                                        <i class="fas fa-code"></i> Toggle Raw Data
+                                                    </button>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if pages > 1 %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mt-4">
+                        {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('web.audit_logs', page=page-1, per_page=per_page, activity=activity, actor=actor, days=days) }}">
+                                    Previous
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for p in range(1, pages + 1) %}
+                            {% if p == page %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ p }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('web.audit_logs', page=p, per_page=per_page, activity=activity, actor=actor, days=days) }}">{{ p }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page < pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('web.audit_logs', page=page+1, per_page=per_page, activity=activity, actor=actor, days=days) }}">
+                                    Next
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                No audit logs found matching your criteria.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Template filter
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to parse JSON safely
+        function fromJson(jsonString) {
+            try {
+                return JSON.parse(jsonString);
+            } catch (e) {
+                return {};
+            }
+        }
+
+        // Register filter
+        window.from_json = fromJson;
+    });
+</script>
+{% endblock %}

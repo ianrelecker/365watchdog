@@ -1,0 +1,292 @@
+{% extends "layout.html" %}
+
+{% block title %}Sign-in Logs - Microsoft 365 Security Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-sign-in-alt me-2"></i>Sign-in Logs</h1>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-filter me-2"></i>Filter Sign-in Logs</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{{ url_for('web.signin_logs') }}">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Statuses</option>
+                        <option value="0" {% if status == '0' %}selected{% endif %}>Success</option>
+                        <option value="50126" {% if status == '50126' %}selected{% endif %}>Invalid username or password</option>
+                        <option value="50074" {% if status == '50074' %}selected{% endif %}>User not found</option>
+                        <option value="50053" {% if status == '50053' %}selected{% endif %}>Account locked</option>
+                        <option value="50055" {% if status == '50055' %}selected{% endif %}>Password expired</option>
+                        <option value="error" {% if status and status != '0' and status != '50126' and status != '50074' and status != '50053' and status != '50055' %}selected{% endif %}>Other errors</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="user" class="form-label">User</label>
+                    <input type="text" class="form-control" id="user" name="user" placeholder="Search by username" value="{{ user }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="days" class="form-label">Time Period</label>
+                    <select class="form-select" id="days" name="days">
+                        <option value="1" {% if days == 1 %}selected{% endif %}>Last 24 Hours</option>
+                        <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Apply Filters
+                </button>
+                <a href="{{ url_for('web.signin_logs') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Log Table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5><i class="fas fa-list me-2"></i>Sign-in Log List</h5>
+            <span class="badge bg-secondary">Total: {{ total }}</span>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if logs %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>User</th>
+                            <th>Application</th>
+                            <th>IP Address</th>
+                            <th>Location</th>
+                            <th>Time</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                            <tr>
+                                <td>
+                                    {% if log.status == '0' %}
+                                        <span class="badge bg-success">Success</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Failed</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.user_display_name }}</td>
+                                <td>{{ log.app_display_name }}</td>
+                                <td>{{ log.ip_address }}</td>
+                                <td>
+                                    {% if log.location %}
+                                        {% set location = log.location|from_json %}
+                                        {% if location and location.get('city') %}
+                                            {{ location.get('city', '') }}, {{ location.get('countryOrRegion', '') }}
+                                        {% else %}
+                                            Unknown
+                                        {% endif %}
+                                    {% else %}
+                                        Unknown
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#logModal{{ log.id }}">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    
+                                    <!-- Log Detail Modal -->
+                                    <div class="modal fade" id="logModal{{ log.id }}" tabindex="-1" aria-labelledby="logModalLabel{{ log.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="logModalLabel{{ log.id }}">Sign-in Log Details</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <p><strong>User:</strong> {{ log.user_display_name }}</p>
+                                                            <p><strong>User Principal Name:</strong> {{ log.user_principal_name }}</p>
+                                                            <p><strong>Application:</strong> {{ log.app_display_name }}</p>
+                                                            <p><strong>IP Address:</strong> {{ log.ip_address }}</p>
+                                                            <p><strong>Client App:</strong> {{ log.client_app_used }}</p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <p><strong>Status:</strong> 
+                                                                {% if log.status == '0' %}
+                                                                    <span class="badge bg-success">Success</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-danger">Failed ({{ log.status }})</span>
+                                                                {% endif %}
+                                                            </p>
+                                                            <p><strong>Authentication Method:</strong> {{ log.auth_method }}</p>
+                                                            <p><strong>Risk Level:</strong> {{ log.risk_level }}</p>
+                                                            <p><strong>Risk State:</strong> {{ log.risk_state }}</p>
+                                                            <p><strong>Time:</strong> {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if log.timestamp else 'Unknown' }}</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {% if log.device_detail %}
+                                                        {% set device = log.device_detail|from_json %}
+                                                        {% if device %}
+                                                            <hr>
+                                                            <h6>Device Details</h6>
+                                                            <div class="table-responsive">
+                                                                <table class="table table-sm">
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <th>Device ID:</th>
+                                                                            <td>{{ device.get('deviceId', 'Unknown') }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Display Name:</th>
+                                                                            <td>{{ device.get('displayName', 'Unknown') }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Operating System:</th>
+                                                                            <td>{{ device.get('operatingSystem', 'Unknown') }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Browser:</th>
+                                                                            <td>{{ device.get('browser', 'Unknown') }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Trust Type:</th>
+                                                                            <td>{{ device.get('trustType', 'Unknown') }}</td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    
+                                                    {% if log.location %}
+                                                        {% set location = log.location|from_json %}
+                                                        {% if location %}
+                                                            <hr>
+                                                            <h6>Location Details</h6>
+                                                            <div class="table-responsive">
+                                                                <table class="table table-sm">
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <th>City:</th>
+                                                                            <td>{{ location.get('city', 'Unknown') }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>State/Province:</th>
+                                                                            <td>{{ location.get('state', 'Unknown') }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Country/Region:</th>
+                                                                            <td>{{ location.get('countryOrRegion', 'Unknown') }} ({{ location.get('countryLetterCode', 'Unknown') }})</td>
+                                                                        </tr>
+                                                                        {% if location.get('geoCoordinates') %}
+                                                                            <tr>
+                                                                                <th>Coordinates:</th>
+                                                                                <td>
+                                                                                    Lat: {{ location.get('geoCoordinates', {}).get('latitude', 'Unknown') }}, 
+                                                                                    Long: {{ location.get('geoCoordinates', {}).get('longitude', 'Unknown') }}
+                                                                                </td>
+                                                                            </tr>
+                                                                        {% endif %}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if pages > 1 %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mt-4">
+                        {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('web.signin_logs', page=page-1, per_page=per_page, status=status, user=user, days=days) }}">
+                                    Previous
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for p in range(1, pages + 1) %}
+                            {% if p == page %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ p }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('web.signin_logs', page=p, per_page=per_page, status=status, user=user, days=days) }}">{{ p }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page < pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('web.signin_logs', page=page+1, per_page=per_page, status=status, user=user, days=days) }}">
+                                    Next
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                No sign-in logs found matching your criteria.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Template filter
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to parse JSON safely
+        function fromJson(jsonString) {
+            try {
+                return JSON.parse(jsonString);
+            } catch (e) {
+                return {};
+            }
+        }
+
+        // Register filter
+        window.from_json = fromJson;
+    });
+</script>
+{% endblock %}

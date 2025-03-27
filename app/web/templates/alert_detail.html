@@ -1,0 +1,255 @@
+{% extends "layout.html" %}
+
+{% block title %}Alert Details - Microsoft 365 Security Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-exclamation-triangle me-2"></i>Alert Details
+    </h1>
+    <div>
+        <a href="{{ url_for('web.alerts') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Alerts
+        </a>
+    </div>
+</div>
+
+<!-- Alert Header -->
+<div class="card mb-4 alert-{{ alert.severity }}">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5>
+                {% if alert.severity == 'high' %}
+                    <span class="badge bg-danger me-2">High</span>
+                {% elif alert.severity == 'medium' %}
+                    <span class="badge bg-warning text-dark me-2">Medium</span>
+                {% else %}
+                    <span class="badge bg-primary me-2">Low</span>
+                {% endif %}
+                {{ alert.title }}
+            </h5>
+            <div>
+                <span class="badge bg-secondary">ID: {{ alert.id }}</span>
+                {% if alert.email_sent %}
+                    <span class="badge bg-success ms-2">
+                        <i class="fas fa-envelope me-1"></i>Email Sent
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>User:</strong> {{ alert.user_display_name }}</p>
+                <p><strong>Alert Type:</strong> {{ alert.alert_type }}</p>
+                <p><strong>Status:</strong> 
+                    {% if alert.status == 'new' %}
+                        <span class="badge bg-info">New</span>
+                    {% elif alert.status == 'in_progress' %}
+                        <span class="badge bg-warning text-dark">In Progress</span>
+                    {% elif alert.status == 'resolved' %}
+                        <span class="badge bg-success">Resolved</span>
+                    {% elif alert.status == 'dismissed' %}
+                        <span class="badge bg-secondary">Dismissed</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Created:</strong> {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+                <p><strong>Event Time:</strong> {{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if alert.timestamp else 'Unknown' }}</p>
+                <p><strong>Source:</strong> {{ alert.source_log_type|capitalize if alert.source_log_type else 'Unknown' }} Log</p>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h5>Description</h5>
+            <div class="p-3 bg-light rounded">
+                <p class="mb-0">{{ alert.description }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Data -->
+{% if additional_data %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-info-circle me-2"></i>Additional Details</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, value in additional_data.items() %}
+                        <tr>
+                            <td>{{ key|replace('_', ' ')|title }}</td>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recommendations -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-check-circle me-2"></i>Recommended Actions</h5>
+    </div>
+    <div class="card-body">
+        <ul class="list-group">
+            {% if alert.alert_type == 'failed_login' %}
+                <li class="list-group-item">Review the sign-in logs to verify if this is a legitimate user having trouble or a potential attack.</li>
+                <li class="list-group-item">Contact the user to confirm if they were attempting to sign in.</li>
+                <li class="list-group-item">If suspicious, consider temporarily blocking the user account and resetting the password.</li>
+                <li class="list-group-item">Review the IP addresses involved for potential blocklisting.</li>
+            {% elif alert.alert_type == 'high_risk_location' %}
+                <li class="list-group-item">Contact the user to verify if they are traveling in this location.</li>
+                <li class="list-group-item">If the user did not initiate this sign-in, immediately disable the account and reset credentials.</li>
+                <li class="list-group-item">Consider adding conditional access policies to block or require additional verification for high-risk countries.</li>
+                <li class="list-group-item">Check for other suspicious activities from the same IP address or region.</li>
+            {% elif alert.alert_type == 'after_hours_login' %}
+                <li class="list-group-item">Verify with the user if this was a legitimate sign-in.</li>
+                <li class="list-group-item">Check the user's normal working pattern and travel schedule.</li>
+                <li class="list-group-item">Consider updating conditional access policies for time-based restrictions if needed.</li>
+            {% elif alert.alert_type == 'admin_login' %}
+                <li class="list-group-item">Confirm that the admin activity was authorized.</li>
+                <li class="list-group-item">Review what actions were performed after the sign-in.</li>
+                <li class="list-group-item">Consider implementing Privileged Identity Management for just-in-time admin access.</li>
+                <li class="list-group-item">Ensure that all admin accounts are protected with MFA.</li>
+            {% elif alert.alert_type == 'impossible_travel' %}
+                <li class="list-group-item">Immediately contact the user to verify both sign-ins.</li>
+                <li class="list-group-item">If either sign-in was unauthorized, disable the account and reset credentials.</li>
+                <li class="list-group-item">Check for additional suspicious activities from both IP addresses.</li>
+                <li class="list-group-item">Consider implementing location-based conditional access policies.</li>
+            {% elif alert.alert_type == 'sensitive_change' %}
+                <li class="list-group-item">Verify that this change was authorized and properly documented.</li>
+                <li class="list-group-item">Review the specific resources that were modified and their current state.</li>
+                <li class="list-group-item">Check for any related changes that might be part of a larger attack.</li>
+                <li class="list-group-item">Consider restoring previous settings if the change was not authorized.</li>
+            {% else %}
+                <li class="list-group-item">Investigate the alert details to determine if this is a security incident.</li>
+                <li class="list-group-item">Contact affected users to verify if the activity was legitimate.</li>
+                <li class="list-group-item">Review related audit logs for additional suspicious activities.</li>
+                <li class="list-group-item">Update security policies if needed to prevent similar incidents.</li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+
+<!-- Source Log Data -->
+{% if source_log %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-code me-2"></i>Source Log Data</h5>
+    </div>
+    <div class="card-body">
+        <ul class="nav nav-tabs" id="logTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="formatted-tab" data-bs-toggle="tab" data-bs-target="#formatted" type="button" role="tab" aria-controls="formatted" aria-selected="true">Formatted View</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="raw-tab" data-bs-toggle="tab" data-bs-target="#raw" type="button" role="tab" aria-controls="raw" aria-selected="false">Raw JSON</button>
+            </li>
+        </ul>
+        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="logTabsContent">
+            <div class="tab-pane fade show active" id="formatted" role="tabpanel" aria-labelledby="formatted-tab">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <tbody>
+                            {% if alert.source_log_type == 'signin' %}
+                                <tr>
+                                    <th>User:</th>
+                                    <td>{{ source_log.user_display_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>User Principal Name:</th>
+                                    <td>{{ source_log.user_principal_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Application:</th>
+                                    <td>{{ source_log.app_display_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>IP Address:</th>
+                                    <td>{{ source_log.ip_address }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Location:</th>
+                                    <td>{{ source_log.location }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>{{ source_log.status }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Client App:</th>
+                                    <td>{{ source_log.client_app_used }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Auth Method:</th>
+                                    <td>{{ source_log.auth_method }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Risk Level:</th>
+                                    <td>{{ source_log.risk_level }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Timestamp:</th>
+                                    <td>{{ source_log.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if source_log.timestamp else 'Unknown' }}</td>
+                                </tr>
+                            {% elif alert.source_log_type == 'audit' %}
+                                <tr>
+                                    <th>Activity:</th>
+                                    <td>{{ source_log.activity_display_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Category:</th>
+                                    <td>{{ source_log.category }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Actor:</th>
+                                    <td>{{ source_log.actor_display_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Result:</th>
+                                    <td>{{ source_log.result }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Result Reason:</th>
+                                    <td>{{ source_log.result_reason }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Timestamp:</th>
+                                    <td>{{ source_log.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if source_log.timestamp else 'Unknown' }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="2">No formatted data available for this log type.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="raw" role="tabpanel" aria-labelledby="raw-tab">
+                {% if raw_log_data %}
+                    <pre class="p-3 bg-light"><code>{{ raw_log_data }}</code></pre>
+                {% else %}
+                    <div class="alert alert-info">No raw log data available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
